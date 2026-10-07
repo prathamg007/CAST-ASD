@@ -1,0 +1,4 @@
+# Non-causal counterpart of cast_d3.yaml.
+_base_: cast_d3.yaml
+asd:
+  causal: false

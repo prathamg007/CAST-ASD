@@ -1,0 +1,11 @@
+# Light-ASD, causalised, with its own 13-coefficient MFCC front end
+# (asd.audio is not used). It has a single 2-logit head, so the unimodal
+# auxiliary losses are off.
+_base_: _base.yaml
+asd:
+  arch: lightasd
+  causal: true
+  head: talknet
+  loss:
+    audio_weight: 0.0
+    visual_weight: 0.0

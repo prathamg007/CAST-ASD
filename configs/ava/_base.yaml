@@ -1,0 +1,56 @@
+# AVA-ActiveSpeaker recipe shared by every config in this directory: a causal
+# per-face model on the Mimi front end, trained on scene-grouped AVA and scored
+# with the official ActivityNet evaluator (val/mAP_official).
+#
+# `ava_asd.root` holds csv/{train,val}_orig.csv and packed/{train,val}.
+
+checkpoint_dir: runs/ava
+
+evaluation:
+  ava_groundtruth: data/ava/csv/val_orig.csv
+
+ava_asd:
+  root: data/ava
+
+asd:
+  data_backend: scene_ava
+  scenes_per_batch: 4
+  scene_min_overlap: 0.5        # context faces must overlap the target this much
+  augment: true
+  num_workers: 5
+
+  max_epochs: 25
+  lr: 0.0001
+  weight_decay: 0.0
+  scheduler: step_decay         # TalkNet's schedule: x0.95 per epoch
+  lr_decay: 0.95
+  precision: 16-mixed
+  early_stopping_patience: 5
+  monitor: val/mAP_official
+
+  scene:
+    mechanism: none
+    max_tracks: 3               # target face + up to 2 context faces
+
+  audio:
+    name: mimi                  # mimi | talknet (MFCC) | vggish
+
+  head: binary
+
+  loss:
+    audio_weight: 0.4
+    visual_weight: 0.4
+
+  cross:
+    d_model: 128
+    m_ff: 4
+    n_heads: 8
+    n_layers: 1
+    dropout: 0.1
+
+  temporal:
+    d_model: 256
+    m_ff: 4
+    n_heads: 8
+    n_layers: 1
+    dropout: 0.1

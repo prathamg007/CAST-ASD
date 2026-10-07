@@ -1,0 +1,4 @@
+# Non-causal LoCoNet, as published.
+_base_: loconet.yaml
+asd:
+  causal: false

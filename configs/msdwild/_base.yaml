@@ -1,0 +1,72 @@
+# MSDWild recipe shared by every config in this directory: a causal per-face
+# model (no scene mixer) on the Mimi front end. Each other file is this one
+# plus the single change it is named after.
+#
+# Edit the paths below to point at your packed data (see README).
+
+checkpoint_dir: runs/msdwild
+
+evaluation:
+  dump_scores: true             # per-frame scores -> <run>/scores-{split}.npz
+  rttm_dir: data/msdwild/rttms/all.rttm   # reference for DER*
+
+packed_asd:
+  train:
+    - data/msdwild/packed/few.train
+  # Reported side by side as val/few/* and val/many/*. MSDWild has no
+  # many-speaker training split, so `many` is zero-shot.
+  val:
+    few:
+      - data/msdwild/packed/few.val
+    many:
+      - data/msdwild/packed/many.val
+
+asd:
+  data_backend: scene_packed
+  frames_per_batch: 12000       # padded track-frames per training batch
+  val_frames_per_batch: 16000
+  max_batch_size: 24            # scenes per batch
+  frame_quantum: 50             # round batch width up to a multiple of this
+  train_min_frames: 750         # train on full 30 s scenes only; val keeps all
+  augment: true
+  num_workers: 16
+  prefetch_factor: 6
+
+  # Fixed 12-epoch cosine schedule, no early stopping, final epoch reported.
+  max_epochs: 12
+  scheduler: cosine_warmup
+  warmup_ratio: 0.05
+  lr: 0.0002
+  weight_decay: 0.0
+  precision: 16-mixed
+  early_stopping_patience: 3    # ignored under cosine_warmup
+
+  monitor: val/few/ap           # `many` never steers selection
+  decision_threshold: 0.5       # fixed decision threshold (precision/recall/F1)
+  recall_target: 0.90           # FA columns are read at matched recall
+
+  scene:
+    mechanism: none
+
+  audio:
+    name: mimi                  # mimi | talknet (MFCC) | vggish
+
+  head: binary
+
+  loss:
+    audio_weight: 0.4
+    visual_weight: 0.4
+
+  cross:
+    d_model: 128
+    m_ff: 4
+    n_heads: 8
+    n_layers: 1
+    dropout: 0.1
+
+  temporal:
+    d_model: 256
+    m_ff: 4
+    n_heads: 8
+    n_layers: 1
+    dropout: 0.1

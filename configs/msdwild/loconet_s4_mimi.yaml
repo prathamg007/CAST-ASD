@@ -1,0 +1,7 @@
+# LoCoNet with a wider roster (s=4), 3 blocks, on the Mimi front end.
+_base_: loconet.yaml
+asd:
+  audio:
+    name: mimi
+  scene:
+    num_speakers: 4

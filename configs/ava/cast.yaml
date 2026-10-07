@@ -1,0 +1,11 @@
+# CAST-ASD: one CAST block.
+_base_: _base.yaml
+asd:
+  val_scenes_per_batch: 6
+  scene:
+    mechanism: cast
+    n_layers: 1
+    n_heads: 8
+    m_ff: 4
+    dropout: 0.1
+    gated: true

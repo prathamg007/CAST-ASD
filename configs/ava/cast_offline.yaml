@@ -1,0 +1,4 @@
+# Non-causal counterpart of cast.yaml.
+_base_: cast.yaml
+asd:
+  causal: false

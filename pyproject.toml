@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cast-asd"
+version = "0.1.0"
+description = "CAST-ASD: Causal Attention over Speakers and Time for online active speaker detection"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+  "lightning>=2.5",
+  "matplotlib>=3.5",
+  "numpy>=1.26",
+  "opencv-python-headless>=4.10",
+  "pandas>=1.3",
+  "pyyaml>=6.0",
+  "torch>=2.3",
+  "torchaudio>=2.3",
+  "torchmetrics>=1.6",
+]
+
+[project.optional-dependencies]
+mimi = ["moshi==0.2.12", "safetensors>=0.4,<0.8", "sentencepiece", "huggingface-hub"]
+wandb = ["wandb>=0.19"]
+dev = ["pytest>=8.3"]
+
+[tool.setuptools.packages.find]
+include = ["cast_asd*"]
+
+[tool.setuptools.package-data]
+"cast_asd.tasks.ava_official" = ["*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

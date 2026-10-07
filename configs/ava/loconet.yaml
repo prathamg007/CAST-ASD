@@ -1,0 +1,16 @@
+# LoCoNet as published (3 blocks), causalised, on its own VGGish front end.
+_base_: _base.yaml
+asd:
+  head: talknet
+  audio:
+    name: vggish
+  scene:
+    mechanism: loconet
+    n_layers: 3
+    num_speakers: 3
+    time_kernel: 7
+    roster_shuffle: true
+    gated: false
+    n_heads: 8
+    m_ff: 4
+    dropout: 0.1

@@ -1,0 +1,4 @@
+# Light-ASD, non-causal (the original model).
+_base_: lightasd.yaml
+asd:
+  causal: false

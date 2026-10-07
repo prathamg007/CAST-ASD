@@ -1,0 +1,4 @@
+# TalkNet, non-causal.
+_base_: talknet.yaml
+asd:
+  causal: false

@@ -1,0 +1,5 @@
+# Block-order ablation: time pass first, then the speaker pass.
+_base_: cast.yaml
+asd:
+  scene:
+    order: time_speaker

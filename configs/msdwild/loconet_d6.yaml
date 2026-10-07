@@ -1,0 +1,5 @@
+# LoCoNet depth ablation: 6 blocks.
+_base_: loconet.yaml
+asd:
+  scene:
+    n_layers: 6

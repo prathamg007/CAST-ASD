@@ -1,0 +1,5 @@
+# Depth ablation: 2 blocks.
+_base_: cast.yaml
+asd:
+  scene:
+    n_layers: 2

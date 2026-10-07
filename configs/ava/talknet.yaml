@@ -1,0 +1,5 @@
+# Causal TalkNet: per-face, TalkNet's MFCC + SE-ResNet front end.
+_base_: _base.yaml
+asd:
+  audio:
+    name: talknet

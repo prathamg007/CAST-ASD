@@ -1,0 +1,2 @@
+# Per-face baseline: every face scored independently, no scene mixer.
+_base_: _base.yaml

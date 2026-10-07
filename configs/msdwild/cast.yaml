@@ -1,0 +1,11 @@
+# CAST-ASD: one CAST block. The speaker pass attends across the faces at one
+# frame, then the time pass attends causally over each face's own past.
+_base_: _base.yaml
+asd:
+  scene:
+    mechanism: cast
+    n_layers: 1
+    n_heads: 8
+    m_ff: 4
+    dropout: 0.1
+    gated: true                 # zero-init gate: training starts at the per-face model
