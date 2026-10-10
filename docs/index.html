@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAST-ASD</title>
+<meta name="description" content="CAST-ASD: Causal Attention over Speakers and Time for Online Active Speaker Detection. Interactive demo, results and code.">
+<meta property="og:title" content="CAST-ASD: Causal Attention over Speakers and Time">
+<meta property="og:description" content="A causal joint active speaker detector: attention across the faces at each frame and over each face's own past, with zero lookahead.">
+<meta property="og:image" content="assets/cast_asd.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234b49d6'/%3E%3Crect x='6' y='9' width='8' height='14' rx='2' fill='none' stroke='white' stroke-width='2.4'/%3E%3Crect x='18' y='9' width='8' height='14' rx='2' fill='%2313a36b' stroke='%2313a36b' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="orcid" viewBox="0 0 256 256"><circle cx="128" cy="128" r="128" fill="#A6CE39"/><path fill="#fff" d="M86.3 186.2H70.9V79.1h15.4v107.1zM108.9 79.1h41.6c39.6 0 57 28.3 57 53.6 0 27.5-21.5 53.6-56.8 53.6h-41.8V79.1zm15.4 93.3h24.5c34.9 0 42.9-26.5 42.9-39.7C191.7 111.2 178 93 148 93h-23.7v79.4zM88.7 56.8c0 5.5-4.5 10.1-10.1 10.1s-10.1-4.6-10.1-10.1c0-5.6 4.5-10.1 10.1-10.1s10.1 4.6 10.1 10.1z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M6 4h4v16H6zM14 4h4v16h-4z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 9l5 6M22 9l-5 6"/></symbol>
+  <symbol id="i-gh" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></symbol>
+  <symbol id="i-paper" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M6 2.5h8l5 5v14H6z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M14 2.5v5h5M9 13h7M9 17h7"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 2.5l8.5 4.5v10L12 21.5 3.5 17V7z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3.5 7L12 11.5 20.5 7M12 11.5v10"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path fill="currentColor" d="M4 11.5C4 7.9 6.2 5.4 9.6 4.5l.7 1.6C8.3 7 7.3 8.4 7.2 10H10v7H4zm10 0c0-3.6 2.2-6.1 5.6-7l.7 1.6c-2 .9-3 2.3-3.1 3.9H20v7h-6z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></symbol>
+</svg>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top">CAST-ASD</a>
+    <div class="nav-links">
+      <a href="#demo">Demo</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#citation">Citation</a>
+      <a href="https://github.com/prathamg007/CAST-ASD">GitHub</a>
+    </div>
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle colour theme"><svg><use href="#i-moon"/></svg></button>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <h1 class="title">CAST-ASD</h1>
+    <p class="subtitle">Causal Attention over Speakers and Time for Online Active Speaker Detection</p>
+    <div class="links">
+      <a class="btn disabled" id="paper-link" href="#" aria-disabled="true"><svg><use href="#i-paper"/></svg>Paper (coming soon)</a>
+      <a class="btn" href="https://github.com/prathamg007/CAST-ASD"><svg><use href="#i-gh"/></svg>Code</a>
+      <a class="btn ghost" href="#citation"><svg><use href="#i-quote"/></svg>BibTeX</a>
+    </div>
+  </div>
+</header>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Demo</h2>
+      <p class="lede">30-second scenes from the MSDWild validation splits, processed by the CAST-ASD checkpoints. Each face is drawn with its frame-level speaking probability; the box turns solid when that probability reaches the decision threshold of 0.5. The tracks under the video show the same decisions over time against the ground-truth annotation. The badge on each clip is the causal model's mAP on that clip.</p>
+    </div>
+
+    <div class="clips" id="clips" role="group" aria-label="Choose a clip"></div>
+
+    <div class="demo">
+      <div>
+        <div class="stage" id="stage">
+          <video id="video" playsinline preload="auto"></video>
+          <canvas id="overlay"></canvas>
+          <div class="stage-tag"><span class="tag live" id="mode-tag">Causal · streaming</span><span class="tag" id="clip-tag"></span></div>
+          <div class="loading" id="loading">Loading clip…</div>
+          <button class="big-play" id="big-play" type="button" aria-label="Play"><svg><use href="#i-play"/></svg></button>
+        </div>
+
+        <div class="controls">
+          <button class="ctl primary" id="play" type="button" aria-label="Play or pause"><svg><use href="#i-play"/></svg></button>
+          <button class="ctl" id="step-back" type="button" aria-label="Previous frame" title="Previous frame (←)"><svg><use href="#i-back"/></svg></button>
+          <button class="ctl" id="step-fwd" type="button" aria-label="Next frame" title="Next frame (→)"><svg><use href="#i-fwd"/></svg></button>
+          <span class="time" id="time">00:00.0 / 00:30.0 · frame 0</span>
+          <span class="spacer"></span>
+          <div class="seg" id="speed" role="group" aria-label="Playback speed">
+            <button type="button" data-v="0.5" aria-pressed="false">0.5×</button>
+            <button type="button" data-v="1" aria-pressed="true">1×</button>
+          </div>
+          <button class="ctl" id="mute" type="button" aria-label="Mute or unmute"><svg><use href="#i-vol"/></svg></button>
+        </div>
+        <p class="mode-note" id="box-note" style="margin:8px 2px 0"></p>
+        <div class="card timeline-card">
+          <div class="tl-head">
+            <h4>Diarization tracks</h4>
+            <div class="legend">
+              <span><i style="background:var(--ref);opacity:.6"></i>Ground truth</span>
+              <span><i style="background:linear-gradient(90deg,#ff6b6b,#4dabf7,#51cf66)"></i>Model decision (P ≥ 0.5)</span>
+              <span><i style="background:linear-gradient(90deg,rgba(255,107,107,.25),rgba(77,171,247,.25))"></i>P(speaking)</span>
+              <span id="err-legend" hidden><i style="background:var(--bad)"></i>Decision differs from ground truth</span>
+            </div>
+            <span class="spacer"></span>
+            <label class="check"><input type="checkbox" id="show-err"> Show errors</label>
+          </div>
+          <div class="timeline">
+            <div class="tl-faces" id="tl-faces"></div>
+            <div class="tl-canvas-wrap" id="tl-wrap"><canvas id="tl"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <div class="card">
+          <h4>Model</h4>
+          <div class="seg" id="mode" role="group" aria-label="Model">
+            <button type="button" data-v="causal" aria-pressed="true">Causal</button>
+            <button type="button" data-v="offline" aria-pressed="false">Offline</button>
+          </div>
+          <div style="height:10px"></div>
+          <h4>Boxes show</h4>
+          <div class="seg" id="hl" role="group" aria-label="Boxes show">
+            <button type="button" data-v="pred" aria-pressed="true">Model output</button>
+            <button type="button" data-v="gt" aria-pressed="false">Ground truth</button>
+          </div>
+          <p class="mode-note" id="mode-note"></p>
+        </div>
+        <div class="card">
+          <h4>Faces <span class="mono" id="faces-unit">P(speaking)</span></h4>
+          <div class="faces" id="faces"></div>
+        </div>
+        <div class="card">
+          <h4>Speaker-pass attention <span class="mono" id="attn-frame"></span></h4>
+          <div class="attn" id="attn"></div>
+          <p class="mode-note">Cell (row i, column j) is the attention weight that face i places on face j at the current frame, averaged over the eight heads. The outlined row is the face currently detected as speaking.</p>
+        </div>
+      </aside>
+    </div>
+
+    <div class="card pad clip-metrics">
+      <div class="cm-wrap">
+        <table class="cm-table" id="cm">
+          <thead><tr><th>This clip</th><th>mAP ↑</th><th>mAP<sub>c</sub> ↑</th><th>DER* ↓</th><th>F1 @ 0.5 ↑</th><th>Precision</th><th>Recall</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="cm-note" id="cm-note">Scored on this clip alone with the evaluation code in the repository. Single clips vary a lot; the split-level numbers are in <a href="#results">Results</a>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="method">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Method</h2>
+      <p class="lede">A scene is a grid with one row per face and one column per frame. A CAST block reads along one axis at a time: across the faces present at a frame, then along each face's own past.</p>
+    </div>
+
+    <figure class="card figure" style="margin:0">
+      <img src="assets/cast_asd.png" alt="CAST-ASD architecture: per-face visual branch, shared audio branch, cross-attention, causal temporal self-attention, then the CAST block with a speaker pass and a time pass." loading="lazy">
+      <figcaption>The visual branch runs independently for each of the F faces and the audio branch once per scene, so every face receives the same mixed audio. The inset shows one CAST block: the speaker pass attends across the faces present at a frame, the time pass attends over a face's own past under a causal mask, and neither reads a future frame. Face crops are grayscale, and are coloured here only to match each crop to its track.</figcaption>
+    </figure>
+
+    <div class="method-grid">
+      <div class="card pad">
+        <h3>Causal per-face backbone</h3>
+        <p class="muted small" style="margin-bottom:10px">TalkNet-style. Grayscale face crops pass through a left-padded 3D convolution, a per-frame ResNet-18 and five depthwise-separable causal 1D convolutions. The audio mixture is encoded once per scene by the frozen Mimi encoder from Moshi and causally aligned to the 25 Hz video frames. Causally masked cross-attention runs in both directions between the two streams, giving a d = 256 embedding, followed by causal temporal self-attention. The CAST block sits after it, before the head that produces one logit per face and frame.</p>
+        <h3 style="margin-top:14px">The CAST block</h3>
+        <p class="muted small" style="margin-bottom:4px">Speaker pass, at every frame t, over the F faces present:</p>
+        <div class="eq">$$Z_{:,t} = \operatorname{Attn}\!\left(H_{:,t}\right), \qquad t = 1,\dots,T$$</div>
+        <p class="muted small" style="margin-bottom:4px">Time pass, along each face i under a causal mask M, with a scalar gate γ initialised to zero so an untrained block reproduces the backbone:</p>
+        <div class="eq">$$U_{i,:} = H_{i,:} + \gamma\left(\operatorname{Attn}\!\left(Z_{i,:};\, M\right) - H_{i,:}\right), \quad i = 1,\dots,F$$</div>
+        <p class="muted small" style="margin:6px 0 0">Attn is a Transformer layer with eight-head attention and a feed-forward expansion of four. The speaker pass costs O(F²d) per frame. Training uses BCE on the audio-visual logit plus two auxiliary BCE terms on the audio and visual streams, weighted λ = 0.4.</p>
+      </div>
+
+      <div class="card rf">
+        <h3>What can face i read at frame t?</h3>
+        <p class="muted small" style="margin:0">Click any cell to make it the output being computed.</p>
+        <div class="rf-grid" id="rf-grid"></div>
+        <div class="rf-axis" id="rf-axis"><span>frame 1</span><span>time →</span><span>frame T</span></div>
+        <div style="height:10px"></div>
+        <div class="rf-steps" id="rf-steps">
+          <button type="button" data-step="0" aria-pressed="true">1 · Speaker pass</button>
+          <button type="button" data-step="1" aria-pressed="false">2 · Time pass</button>
+          <button type="button" data-step="2" aria-pressed="false">Receptive field</button>
+        </div>
+        <p class="rf-caption" id="rf-caption" style="margin-top:10px"></p>
+        <div class="two" style="gap:10px;margin-top:6px">
+          <p class="small muted" style="margin:0"><b style="color:var(--text)">Causal by construction.</b> The speaker pass runs on a tensor with faces on the sequence axis and no time axis, so only the time pass needs a mask, for any number of faces.</p>
+          <p class="small muted" style="margin:0"><b style="color:var(--text)">Order-free.</b> Face slots carry no positional encoding, so permuting the faces permutes the outputs. Track order is an artefact of the tracker and carries no information.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Results</h2>
+      <p class="lede">MSDWild is segmented into 30 s clips at 25 fps. few.val scenes hold two to four speakers; many.val scenes hold five or more and are zero-shot with respect to scene width, since training uses the few-speaker split only.</p>
+    </div>
+
+    <div class="card pad res-block">
+      <div class="tbl-wrap">
+        <table class="res" id="t-main">
+          <caption><b style="color:var(--text)">Table 1.</b> Causal systems on MSDWild, with the offline configuration of each architecture for reference. mAP<sub>c</sub> and FA<sub>c</sub> are measured on frames where another visible face is speaking, FA<sub>c</sub> at 90% recall. DER* uses oracle tracking and speaker identities. Mean ± s.d. over three seeds.</caption>
+          <thead>
+            <tr class="top"><th></th><th colspan="4" class="span">many.val (5+ speakers)</th><th class="span">few.val</th></tr>
+            <tr><th>System</th><th>mAP ↑</th><th>mAP<sub>c</sub> ↑</th><th>FA<sub>c</sub> ↓</th><th>DER* ↓</th><th>mAP ↑</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="res-grid res-block">
+      <div class="card pad">
+        <div class="chart-head"><h3>Effect of scene width</h3>
+          <div class="seg" id="occ-metric" role="group" aria-label="Metric">
+            <button type="button" data-v="fa" aria-pressed="true">FA<sub>c</sub> ↓</button>
+            <button type="button" data-v="map" aria-pressed="false">mAP ↑</button>
+          </div>
+        </div>
+        <svg class="chart" id="c-occ" viewBox="0 0 560 330" role="img" aria-label="Chart of competing false alarms or mAP by number of visible faces"></svg>
+        <div class="chart-legend" id="occ-legend"></div>
+        <p class="takeaway">The two joint models are close while the scene fits inside LoCoNet's three-face roster and separate beyond it. The gap is largest for <b>5+ faces</b>, which is <b>69.6%</b> of many.val.</p>
+      </div>
+      <div class="card pad">
+        <div class="tbl-wrap">
+          <table class="res" id="t-occ">
+            <caption><b style="color:var(--text)">Table 2.</b> FA<sub>c</sub> and mAP on many.val by the number of faces visible at the frame.</caption>
+            <thead><tr><th>Faces visible at the frame</th><th>2</th><th>3</th><th>4</th><th>5+</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="res-grid res-block">
+      <div class="card pad">
+        <div class="chart-head"><h3>Mixer parameters against competing false alarms</h3></div>
+        <svg class="chart" id="c-params" viewBox="0 0 560 340" role="img" aria-label="Scatter plot of scene-mixer parameters against FA_c on many.val"></svg>
+        <div class="chart-legend">
+          <span><i style="background:var(--accent)"></i>CAST</span>
+          <span><i style="background:#f08c00"></i>LoCoNet</span>
+          <span><i style="background:var(--muted)"></i>Mimi front end</span>
+          <span><i class="sq hollow" style="border-color:var(--muted)"></i>VGGish front end</span>
+        </div>
+        <p class="takeaway">With the front end held fixed, CAST is ahead on both metrics in all four matched pairs. At s = 5 the convolution still trails one CAST block while carrying <b>24× as many mixer parameters</b>.</p>
+      </div>
+      <div class="card pad">
+        <div class="tbl-wrap">
+          <table class="res" id="t-op">
+            <caption><b style="color:var(--text)">Table 3.</b> Scene mixer against audio front end on many.val. Parameters are those of the mixer; s is the LoCoNet roster width.</caption>
+            <thead><tr><th>Audio</th><th>Mixer</th><th>s</th><th>Blocks</th><th>Param.</th><th>mAP ↑</th><th>FA<sub>c</sub> ↓</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="res-grid res-block">
+      <div class="card pad">
+        <div class="chart-head"><h3>The cost of causal inference</h3></div>
+        <svg class="chart" id="c-cost" viewBox="0 0 560 290" role="img" aria-label="Dumbbell chart of causal and offline mAP per architecture"></svg>
+        <div class="chart-legend">
+          <span><i style="background:var(--accent)"></i>Causal</span>
+          <span><i class="hollow" style="border-color:var(--accent)"></i>Offline</span>
+        </div>
+        <p class="takeaway">CAST-ASD gives up the least accuracy under causal constraints, <b>1.14 mAP</b>, from the highest causal score; LoCoNet gives up <b>2.67</b>. Lookahead and inter-face context act as partial substitutes.</p>
+      </div>
+      <div class="card pad">
+        <div class="tbl-wrap">
+          <table class="res" id="t-cost">
+            <caption><b style="color:var(--text)">Table 4.</b> mAP on many.val in the causal and offline configurations, and the difference Δ.</caption>
+            <thead><tr><th>Architecture</th><th>Causal</th><th>Offline</th><th>Δ</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="small muted" style="margin:14px 0 0"><b style="color:var(--text)">Model capacity.</b> Two and three CAST blocks lie within seed variation of one block, and six destabilise training, as they do for the convolutional mixer. Reversing the order of the two passes has no measurable effect. One block is the deployment configuration: 1.57M parameters, 1.09 GFLOP per face-frame, measured zero lookahead.</p>
+      </div>
+    </div>
+
+    <div class="res-grid res-block">
+      <div class="card pad">
+        <div class="tbl-wrap">
+          <table class="res" id="t-ava">
+            <caption><b style="color:var(--text)">Table 5.</b> AVA-ActiveSpeaker validation mAP, official ActivityNet scorer. † As reported by the original authors.</caption>
+            <thead><tr><th>System</th><th>Causal</th><th>Offline</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="takeaway">The ordering is reproduced on a corpus close to the regime in which a three-face roster suffices, and the margin is correspondingly smaller than on MSDWild.</p>
+      </div>
+      <div class="card pad">
+        <div class="tbl-wrap">
+          <table class="res" id="t-corpus">
+            <caption><b style="color:var(--text)">Table 6.</b> Validation-set statistics, in % of face-frames. A negative face-frame is competing when another tracked face is speaking.</caption>
+            <thead><tr class="top"><th></th><th></th><th colspan="2" class="span">MSDWild</th></tr><tr><th></th><th>AVA</th><th>few.val</th><th>many.val</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="takeaway">On AVA a negative face-frame rarely competes with another visible speaker. On MSDWild most of them do, which is why it is the primary benchmark here. Reference speech whose speaker is not among the tracked faces accounts for 3.5% of few.val and 10.5% of many.val.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="citation">
+  <div class="narrow">
+    <div class="sec-head">
+      <h2>Citation</h2>
+    </div>
+    <div class="code">
+      <button class="copy" type="button">Copy</button>
+<pre>@misc{gupta2026castasd,
+  title  = {{CAST-ASD}: Causal Attention over Speakers and Time for Online Active Speaker Detection},
+  author = {Gupta, Pratham and Qi, Haotian and Sandhan, Tushar and Skantze, Gabriel},
+  year   = {2026}
+}</pre>
+    </div>
+
+    <div class="card pad" style="margin-top:28px">
+      <h3>Acknowledgements</h3>
+      <p class="small muted" style="margin:0">This work was supported by the Wallenberg AI, Autonomous Systems and Software Program (WASP), funded by the Knut and Alice Wallenberg Foundation (KAW), and the Swedish Research Council project 2020-03812. Computations and data handling were enabled by the Berzelius resource at the National Supercomputer Centre, provided by the Knut and Alice Wallenberg Foundation. The per-face backbone builds on <a href="https://github.com/TaoRuijie/TalkNet-ASD">TalkNet-ASD</a>; the baselines are reimplemented from <a href="https://github.com/SJTUwxz/LoCoNet_ASD">LoCoNet</a> and <a href="https://github.com/Junhua-Liao/Light-ASD">Light-ASD</a>; the audio encoder is <a href="https://github.com/kyutai-labs/moshi">Mimi</a> from Kyutai. We thank the authors of these projects and of the <a href="https://github.com/X-LANCE/MSDWILD">MSDWild</a> and <a href="https://research.google.com/ava/">AVA-ActiveSpeaker</a> datasets.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 the authors · Code and weights under the MIT license · <a href="https://github.com/prathamg007/CAST-ASD">github.com/prathamg007/CAST-ASD</a></div>
+  </div>
+</footer>
+
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="assets/results.js"></script>
+<script defer src="assets/demo.js"></script>
+</body>
+</html>
