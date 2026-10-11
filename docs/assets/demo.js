@@ -2,15 +2,20 @@
  * Per-clip data (demo/<id>/data.js) comes from the released checkpoints via tools/make_demo.py. */
 (() => {
   const CLIPS = [
-    { id: "01242_1", faces: 5, split: "many.val", lang: "English", ap: "95.9" },
-    { id: "00776_0", faces: 5, split: "many.val", lang: "English", ap: "94.3" },
-    { id: "03141_1", faces: 5, split: "many.val", lang: "English", ap: "93.3" },
-    { id: "00934_0", faces: 9, split: "many.val", lang: "Korean", ap: "97.6" },
-    { id: "02808_1", faces: 6, split: "many.val", lang: "English", ap: "87.2" },
-    { id: "00706_0", faces: 4, split: "few.val", lang: "Filipino", ap: "95.0" },
-    { id: "01036_0", faces: 5, split: "many.val", lang: "Hindi", ap: "93.6" },
-    { id: "00134_0", faces: 4, split: "few.val", lang: "Hindi", ap: "92.5" },
-    { id: "00897_0", faces: 2, split: "few.val", lang: "English", ap: "98.5" },
+    { id: "01242_1", faces: 5, lang: "English" },
+    { id: "01984_0", faces: 5, lang: "Chinese" },
+    { id: "00934_0", faces: 9, lang: "Korean" },
+    { id: "00776_0", faces: 5, lang: "English" },
+    { id: "02552_0", faces: 9, lang: "Korean" },
+    { id: "00706_0", faces: 4, lang: "Filipino" },
+    { id: "00884_1", faces: 5, lang: "Japanese" },
+    { id: "03141_1", faces: 5, lang: "English" },
+    { id: "02808_1", faces: 6, lang: "English" },
+    { id: "00727_0", faces: 5, lang: "Chinese" },
+    { id: "01036_0", faces: 5, lang: "Hindi" },
+    { id: "02904_2", faces: 4, lang: "English" },
+    { id: "00134_0", faces: 4, lang: "Hindi" },
+    { id: "00897_0", faces: 2, lang: "English" },
   ];
   const DEFAULT = "01242_1";
   const COLORS = ["#ff6b6b", "#4dabf7", "#51cf66", "#fcc419", "#cc5de8", "#ff922b", "#22b8cf", "#f06595", "#94d82d"];
@@ -19,7 +24,14 @@
   const $ = (id) => document.getElementById(id);
   const video = $("video"), stage = $("stage"), overlay = $("overlay"), octx = overlay.getContext("2d");
   const tl = $("tl"), tctx = tl.getContext("2d"), tlWrap = $("tl-wrap");
-  const state = { clip: null, mode: "causal", hl: "pred", err: false, frame: -1, layers: null, token: 0 };
+  const state = { clip: null, mode: "causal", hl: "pred", err: false, cmp: false, frame: -1, layers: null, token: 0 };
+  const LANE = 13, GUTTER = 66;
+  const DEFAULT_MODELS = [{ key: "causal", label: "CAST-ASD (causal)", causal: true }, { key: "offline", label: "CAST-ASD (offline)", causal: false }];
+  const shortName = (m) => m.label.split(" (")[0];
+  const plainName = (m) => m.label.replace(/[()]/g, "");
+  const comparing = () => state.cmp && state.clip && state.clip.compare.length > 1;
+  const rowH = () => (comparing() ? 14 + LANE * state.clip.compare.length : ROW);
+  const gutter = () => (comparing() ? GUTTER : 0);
 
   // ---------- data ----------
   const b64 = (s) => { const bin = atob(s); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; };
@@ -32,13 +44,15 @@
     const d = window.CAST_DEMO[id];
     if (!d._ready) {
       d.tracks.forEach((t, k) => {
-        t.p = { causal: b64(t.causal), offline: b64(t.offline) };
+        t.p = {};
+        (d.models || DEFAULT_MODELS).forEach((m) => { t.p[m.key] = b64(t[m.key]); });
         t.ref = mask(t.gt, d.frames);
         t.color = COLORS[k % COLORS.length];
         t.thumb = `demo/${id}/face_${k}.jpg`;
       });
+      d.models = d.models || DEFAULT_MODELS;
+      d.compare = d.models.filter((m) => m.causal);        // systems shown side by side
       d.off = mask(d.offscreen, d.frames);
-      d.attn = b64(d.attention);
       d.id = id;
       d._ready = true;
     }
@@ -49,8 +63,8 @@
   const picker = $("clips");
   picker.innerHTML = CLIPS.map((c) => `
     <button class="clip-card" type="button" data-id="${c.id}" aria-pressed="false">
-      <div class="thumb" style="background-image:url('demo/${c.id}/poster.jpg')"><span class="badge">mAP ${c.ap}</span></div>
-      <div class="meta"><div class="name">${c.faces} faces · ${c.lang}</div><div class="split">${c.split} · ${c.id.split("_")[0]}</div></div>
+      <div class="thumb" style="background-image:url('demo/${c.id}/poster.jpg')"></div>
+      <div class="meta"><div class="name">${c.faces} faces · ${c.lang}</div><div class="split">MSDWild ${c.id.split("_")[0]}</div></div>
     </button>`).join("");
   picker.addEventListener("click", (e) => { const b = e.target.closest(".clip-card"); if (b) select(b.dataset.id, true); });
 
@@ -62,12 +76,12 @@
     const d = await getClip(id);
     if (token !== state.token) return;
     state.clip = d; state.frame = -1;
-    const meta = CLIPS.find((c) => c.id === id);
-    $("clip-tag").textContent = `${meta.split} · ${d.tracks.length} faces`;
+    $("clip-tag").textContent = `${d.tracks.length} faces`;
     video.src = `demo/${id}/clip.mp4`;
     video.poster = `demo/${id}/poster.jpg`;
     video.load();
     buildPanels(d);
+    buildModes(d);
     buildMetrics(d);
     resize();
     render(0, true);
@@ -87,27 +101,30 @@
         <span class="pct">0%</span>
       </div>`).join("");
 
-    const F = d.tracks.length, attn = $("attn");
-    attn.style.gridTemplateColumns = `24px repeat(${F}, minmax(0, 1fr))`;
-    let html = "<div></div>" + d.tracks.map((t) => `<div class="h" style="--c:${t.color}"><img src="${t.thumb}" alt=""></div>`).join("");
-    for (let i = 0; i < F; i++) {
-      html += `<div class="r" style="--c:${d.tracks[i].color}"><img src="${d.tracks[i].thumb}" alt=""></div>`;
-      for (let j = 0; j < F; j++) html += `<div class="cell" data-i="${i}" data-j="${j}"><span></span></div>`;
-    }
-    attn.innerHTML = html;
-    state.attnCells = [...attn.querySelectorAll(".cell span")];
-    state.attnRows = [...attn.querySelectorAll(".r")];
     state.faceRows = [...$("faces").querySelectorAll(".face-row")];
 
     $("tl-faces").innerHTML = d.tracks.map((t, k) => `<div style="--c:${t.color}"><img src="${t.thumb}" alt="Face ${k + 1}"></div>`).join("") +
       `<div><span class="off">off-screen</span></div>`;
   }
 
+  function buildModes(d) {
+    if (!d.models.some((m) => m.key === state.mode)) state.mode = "causal";
+    const two = d.models.length === 2;
+    $("mode").innerHTML = d.models.map((m) => `<button type="button" data-v="${m.key}" aria-pressed="${m.key === state.mode}">` +
+      `${two ? (m.causal ? "Causal" : "Offline") : plainName(m)}</button>`).join("");
+    $("cmp-wrap").hidden = d.compare.length < 2;
+    $("cmp-note").hidden = d.compare.length < 2;
+    setMode(state.mode);
+  }
+
   function buildMetrics(d) {
     const f = (x, s = 1) => (x == null || Number.isNaN(x) ? "–" : (x * s).toFixed(1));
-    const row = (name, m, key) => `<tr data-mode="${key}"${state.mode === key ? ' style="background:var(--accent-soft)"' : ""}><td>${name}</td>` +
-      `<td>${f(m.ap)}</td><td>${f(m.ap_competing)}</td><td>${f(m.oracle_der)}</td><td>${f(m.f1, 100)}</td><td>${f(m.precision, 100)}</td><td>${f(m.recall, 100)}</td></tr>`;
-    $("cm").tBodies[0].innerHTML = row("CAST-ASD causal", d.metrics.causal, "causal") + row("CAST-ASD offline", d.metrics.offline, "offline");
+    $("cm").tBodies[0].innerHTML = d.models.map((m) => {
+      const v = d.metrics[m.key];
+      return `<tr data-mode="${m.key}"${state.mode === m.key ? ' style="background:var(--accent-soft)"' : ""}><td>${m.label}</td>` +
+        `<td>${f(v.ap)}</td><td>${f(v.ap_competing)}</td><td>${f(v["fa@0.5"], 100)}</td><td>${f(v["fa_competing@0.5"], 100)}</td>` +
+        `<td>${f(v.oracle_der)}</td><td>${f(v.f1, 100)}</td></tr>`;
+    }).join("");
   }
 
   // ---------- geometry ----------
@@ -119,7 +136,8 @@
     const d = state.clip;
     if (d) {
       const rows = d.tracks.length + 1;
-      const w = tlWrap.clientWidth, h = rows * ROW + AXIS;
+      const w = tlWrap.clientWidth, h = rows * rowH() + AXIS;
+      $("tl-faces").style.setProperty("--rh", `${rowH()}px`);
       tl.width = Math.round(w * dpr); tl.height = Math.round(h * dpr); tl.style.height = `${h}px`;
       buildLayers();
     }
@@ -144,14 +162,21 @@
   function buildLayers() {
     const d = state.clip; if (!d || !tl.width) return;
     const W = tl.width, H = tl.height, n = d.frames, s = dpr;
-    const xs = (f) => (f / n) * W;
+    const ROW = rowH(), G = gutter() * s, cmp = comparing();
+    const xs = (f) => G + (f / n) * (W - G);
     const make = () => { const c = document.createElement("canvas"); c.width = W; c.height = H; return c; };
     const ref = make(), rc = ref.getContext("2d");
     const refColor = css("--ref"), surf2 = css("--surface-2");
     const rowsAll = d.tracks.length + 1;
     for (let r = 0; r < rowsAll; r++) {
       rc.fillStyle = surf2;
-      roundRect(rc, 0, (r * ROW + 2) * s, W, (ROW - 4) * s, 6 * s); rc.fill();
+      roundRect(rc, G, (r * ROW + 2) * s, W - G, (ROW - 4) * s, 6 * s); rc.fill();
+    }
+    if (cmp) {
+      rc.font = `600 ${10 * s}px Inter, system-ui, sans-serif`; rc.textBaseline = "middle"; rc.textAlign = "right";
+      rc.fillStyle = css("--muted");
+      d.tracks.forEach((t, r) => d.compare.forEach((m, j) =>
+        rc.fillText(shortName(m), G - 6 * s, (r * ROW + 13 + j * LANE + 5) * s)));
     }
     const strip = (r, m, color) => {
       rc.fillStyle = color;
@@ -159,16 +184,16 @@
       for (let f = 0; f <= n; f++) {
         const on = f < n && m[f];
         if (on && a < 0) a = f;
-        if (!on && a >= 0) { roundRect(rc, xs(a), (r * ROW + 6) * s, Math.max(1, xs(f) - xs(a)), 5 * s, 2.5 * s); rc.fill(); a = -1; }
+        if (!on && a >= 0) { roundRect(rc, xs(a), (r * ROW + (cmp ? 5 : 6)) * s, Math.max(1, xs(f) - xs(a)), (cmp ? 4 : 5) * s, 2 * s); rc.fill(); a = -1; }
       }
     };
     d.tracks.forEach((t, r) => strip(r, t.ref, rgba(hexOf(refColor), 0.75)));
     // off-screen row: reference only, drawn taller
     rc.fillStyle = rgba(hexOf(refColor), 0.45);
-    runs(d.off).forEach(([a, b]) => { roundRect(rc, xs(a), (d.tracks.length * ROW + 10) * s, Math.max(1, xs(b) - xs(a)), 18 * s, 3 * s); rc.fill(); });
+    runs(d.off).forEach(([a, b]) => { roundRect(rc, xs(a), (d.tracks.length * ROW + 10) * s, Math.max(1, xs(b) - xs(a)), (ROW - 20) * s, 3 * s); rc.fill(); });
 
     const pred = {}, err = {};
-    for (const mode of ["causal", "offline"]) {
+    for (const mode of d.models.map((m) => m.key)) {
       const pc = make(), pctx = pc.getContext("2d");
       const ec = make(), ectx = ec.getContext("2d");
       d.tracks.forEach((t, r) => {
@@ -188,7 +213,29 @@
       });
       pred[mode] = pc; err[mode] = ec;
     }
-    state.layers = { ref, pred, err };
+    // side by side: one lane per causal system; correct detections in the face colour, false alarms in red
+    let lanes = null;
+    if (cmp) {
+      lanes = make();
+      const lc = lanes.getContext("2d");
+      // false alarms are hatched as well as red: some face colours are close to red
+      const tile = document.createElement("canvas"); tile.width = tile.height = Math.round(6 * s);
+      const tc = tile.getContext("2d");
+      tc.fillStyle = css("--bad"); tc.fillRect(0, 0, tile.width, tile.height);
+      tc.strokeStyle = "rgba(0,0,0,0.55)"; tc.lineWidth = 1.6 * s;
+      for (const o of [-tile.width, 0, tile.width]) { tc.beginPath(); tc.moveTo(o, tile.height); tc.lineTo(o + tile.width, 0); tc.stroke(); }
+      const bad = lc.createPattern(tile, "repeat");
+      d.tracks.forEach((t, r) => d.compare.forEach((m, j) => {
+        const p = t.p[m.key], y = (r * ROW + 13 + j * LANE) * s, hh = (LANE - 3) * s;
+        const hit = new Uint8Array(n), fa = new Uint8Array(n);
+        for (let f = 0; f < n; f++) { const on = p[f] >= 128; hit[f] = on && t.ref[f]; fa[f] = on && !t.ref[f]; }
+        lc.fillStyle = t.color;
+        runs(hit).forEach(([a, b]) => { roundRect(lc, xs(a), y, Math.max(1.5, xs(b) - xs(a)), hh, 2 * s); lc.fill(); });
+        lc.fillStyle = bad;
+        runs(fa).forEach(([a, b]) => { roundRect(lc, xs(a), y, Math.max(1.5, xs(b) - xs(a)), hh, 2 * s); lc.fill(); });
+      }));
+    }
+    state.layers = { ref, pred, err, lanes };
   }
   function hexOf(c) {
     if (c.startsWith("#") && c.length === 7) return c;
@@ -196,7 +243,7 @@
     return "#8a93a6";
   }
   function runs(m) { const out = []; let a = -1; for (let f = 0; f <= m.length; f++) { const on = f < m.length && m[f]; if (on && a < 0) a = f; if (!on && a >= 0) { out.push([a, f]); a = -1; } } return out; }
-  function roundRect(c, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  function roundRect(c, x, y, w, h, r) { w = Math.max(0, w); h = Math.max(0, h); r = Math.max(0, Math.min(r, w / 2, h / 2)); c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 
   // ---------- rendering ----------
   const currentFrame = () => { const d = state.clip; if (!d) return 0; return Math.max(0, Math.min(d.frames - 1, Math.floor(video.currentTime * d.fps + 1e-3))); };
@@ -270,18 +317,23 @@
     const c = tctx, W = tl.width, H = tl.height, s = dpr;
     c.clearRect(0, 0, W, H);
     c.drawImage(L.ref, 0, 0);
-    const px = ((f + 1) / d.frames) * W;
-    const visible = state.mode === "causal" ? px : W;
+    const ROW = rowH(), G = gutter() * s, cmp = comparing() && L.lanes;
+    const px = G + ((f + 1) / d.frames) * (W - G);
+    const streaming = cmp || d.models.find((m) => m.key === state.mode).causal;
+    const visible = streaming ? px : W;
     c.save(); c.beginPath(); c.rect(0, 0, visible, H); c.clip();
-    c.drawImage(L.pred[state.mode], 0, 0);
-    if (state.err) c.drawImage(L.err[state.mode], 0, 0);
+    if (cmp) c.drawImage(L.lanes, 0, 0);
+    else {
+      c.drawImage(L.pred[state.mode], 0, 0);
+      if (state.err) c.drawImage(L.err[state.mode], 0, 0);
+    }
     c.restore();
     // axis
     const rowsH = (d.tracks.length + 1) * ROW * s;
     c.fillStyle = css("--faint"); c.font = `500 ${11 * s}px Inter, system-ui, sans-serif`; c.textBaseline = "top";
     const secs = d.frames / d.fps;
     for (let t = 0; t <= secs + 1e-6; t += 5) {
-      const x = (t / secs) * W;
+      const x = G + (t / secs) * (W - G);
       c.fillRect(Math.min(x, W - s), rowsH + 1 * s, s, 4 * s);
       c.textAlign = t === 0 ? "left" : t >= secs - 0.01 ? "right" : "center";
       c.fillText(`${t}s`, x, rowsH + 7 * s);
@@ -290,7 +342,7 @@
     const accent = css("--accent");
     c.fillStyle = accent;
     c.fillRect(px - 1 * s, 0, 2 * s, rowsH);
-    if (state.mode === "causal") {
+    if (streaming) {
       const g = c.createLinearGradient(px - 40 * s, 0, px, 0);
       g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, rgba(hexOf(accent), 0.12));
       c.fillStyle = g; c.fillRect(px - 40 * s, 0, 40 * s, rowsH);
@@ -298,8 +350,6 @@
   }
 
   function updatePanels(d, f) {
-    const F = d.tracks.length;
-    let top = -1, topP = -1;
     d.tracks.forEach((t, k) => {
       const p = t.p[state.mode][f] / 255;
       const on = state.hl === "pred" ? p >= 0.5 : !!t.ref[f];
@@ -309,19 +359,7 @@
       row.querySelector(".meter i").style.width = gt ? (on ? "100%" : "0%") : `${(p * 100).toFixed(1)}%`;
       row.querySelector(".pct").textContent = gt ? (on ? "yes" : "no") : `${Math.round(p * 100)}%`;
       row.querySelector(".ref").classList.toggle("on", !!t.ref[f]);
-      if (p > topP) { topP = p; top = k; }
     });
-    const base = f * F * F;
-    for (let i = 0; i < F; i++) {
-      for (let j = 0; j < F; j++) {
-        const w = d.attn[base + i * F + j] / 255;
-        const cell = state.attnCells[i * F + j];
-        cell.style.opacity = Math.pow(w, 0.75).toFixed(3);
-        cell.parentElement.title = `Face ${i + 1} → face ${j + 1}: ${(w * 100).toFixed(0)}%`;
-      }
-      state.attnRows[i].classList.toggle("row-on", i === top && topP >= 0.5);
-    }
-    $("attn-frame").textContent = `frame ${f}`;
   }
 
   // ---------- playback loop ----------
@@ -351,21 +389,23 @@
   $("step-fwd").addEventListener("click", () => step(1));
   $("mute").addEventListener("click", () => { video.muted = !video.muted; setIcon($("mute"), video.muted ? "#i-mute" : "#i-vol"); });
 
-  const seg = (id, fn) => document.querySelectorAll(`#${id} button`).forEach((b) => b.addEventListener("click", () => {
+  const seg = (id, fn) => $(id).addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
     document.querySelectorAll(`#${id} button`).forEach((o) => o.setAttribute("aria-pressed", o === b));
     fn(b.dataset.v);
-  }));
+  });
   seg("speed", (v) => { video.playbackRate = parseFloat(v); });
-  const NOTES = {
-    causal: "Causal: each score uses only video and audio up to the current frame, so the tracks fill in as the clip plays.",
-    offline: "Offline: the model reads the whole 30 s clip before labelling any frame, so all of its tracks are available at once.",
-  };
   const setMode = (v) => {
     state.mode = v;
-    $("mode-note").textContent = NOTES[v];
+    const models = state.clip ? state.clip.models : DEFAULT_MODELS;
+    const m = models.find((x) => x.key === v) || models[0];
+    const who = models.length === 2 ? (m.causal ? "Causal" : "Offline") : plainName(m);
+    $("mode-note").textContent = m.causal
+      ? `${who}: each score uses only video and audio up to the current frame, so the tracks fill in as the clip plays.`
+      : `${who}: the model reads the whole 30 s clip before labelling any frame, so all of its tracks are available at once.`;
     const tag = $("mode-tag");
-    tag.textContent = v === "causal" ? "Causal · streaming" : "Offline · whole clip";
-    tag.classList.toggle("live", v === "causal");
+    tag.textContent = models.length === 2 ? (m.causal ? "Causal · streaming" : "Offline · whole clip") : `${shortName(m)} · ${m.causal ? "causal" : "offline"}`;
+    tag.classList.toggle("live", m.causal);
     if (state.clip) buildMetrics(state.clip);
     render(currentFrame(), true);
   };
@@ -374,13 +414,19 @@
     state.hl = v;
     $("faces-unit").textContent = v === "gt" ? "ground truth" : "P(speaking)";
     $("box-note").textContent = v === "gt"
-      ? "Boxes show the ground-truth annotation: solid when the person is labelled as speaking. This view does not depend on the model, so it is identical for Causal and Offline."
+      ? "Boxes show the ground-truth annotation: solid when the person is labelled as speaking. This view does not depend on the model, so it is the same whichever model is selected."
       : "The number on each box is the model's P(speaking) for that face at the current frame. Solid coloured box: P ≥ 0.5. Dashed box: P < 0.5.";
     render(currentFrame(), true);
   };
   seg("hl", setHl);
   setHl("pred");
   $("show-err").addEventListener("change", (e) => { state.err = e.target.checked; $("err-legend").hidden = !state.err; render(currentFrame(), true); });
+  $("cmp").addEventListener("change", (e) => {
+    state.cmp = e.target.checked;
+    document.querySelectorAll(".cmp-only").forEach((n) => { n.hidden = !state.cmp; });
+    document.querySelectorAll(".single-only").forEach((n) => { n.hidden = state.cmp; });
+    resize();
+  });
   setMode("causal");
 
   // scrub on the timeline
@@ -388,7 +434,8 @@
   const seekTo = (e) => {
     const d = state.clip; if (!d) return;
     const r = tl.getBoundingClientRect();
-    const frac = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    const g = gutter();
+    const frac = Math.max(0, Math.min(1, (e.clientX - r.left - g) / (r.width - g)));
     const f = Math.min(d.frames - 1, Math.floor(frac * d.frames));
     video.currentTime = (f + 0.5) / d.fps;
   };

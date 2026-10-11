@@ -51,10 +51,16 @@
   <div class="wrap">
     <h1 class="title">CAST-ASD</h1>
     <p class="subtitle">Causal Attention over Speakers and Time for Online Active Speaker Detection</p>
+    <p class="byline">Pratham Gupta<a class="orcid-link" href="https://orcid.org/0009-0000-7435-2074" aria-label="ORCID of Pratham Gupta"><svg class="orcid"><use href="#orcid"/></svg></a><sup>1,†,∗</sup> &nbsp;·&nbsp; Haotian Qi<a class="orcid-link" href="https://orcid.org/0009-0002-2946-0054" aria-label="ORCID of Haotian Qi"><svg class="orcid"><use href="#orcid"/></svg></a><sup>2,∗</sup> &nbsp;·&nbsp; Tushar Sandhan<a class="orcid-link" href="https://orcid.org/0009-0004-1138-4756" aria-label="ORCID of Tushar Sandhan"><svg class="orcid"><use href="#orcid"/></svg></a><sup>1</sup> &nbsp;·&nbsp; Gabriel Skantze<a class="orcid-link" href="https://orcid.org/0000-0002-8579-1790" aria-label="ORCID of Gabriel Skantze"><svg class="orcid"><use href="#orcid"/></svg></a><sup>2</sup></p>
+    <p class="byline-note"><sup>1</sup>Indian Institute of Technology Kanpur &nbsp;&nbsp; <sup>2</sup>KTH Royal Institute of Technology &nbsp;&nbsp; <sup>†</sup>Corresponding author &nbsp;&nbsp; <sup>∗</sup>Equal contribution</p>
     <div class="links">
       <a class="btn disabled" id="paper-link" href="#" aria-disabled="true"><svg><use href="#i-paper"/></svg>Paper (coming soon)</a>
       <a class="btn" href="https://github.com/prathamg007/CAST-ASD"><svg><use href="#i-gh"/></svg>Code</a>
       <a class="btn ghost" href="#citation"><svg><use href="#i-quote"/></svg>BibTeX</a>
+    </div>
+    <div class="overview">
+      <p>Active speaker detection decides, for every visible face in every video frame, whether that person is talking. The most accurate detectors compare all the faces in a scene, but they work offline: a frame is labelled only after the whole clip has been seen. Detectors meant for live use run causally and score each face on its own. With several people on screen that is a real limitation, because every face hears the same audio, so the evidence that tells them apart is visual and often weak at a single instant.</p>
+      <p>CAST-ASD keeps the comparison across faces and removes the dependence on the future. It adds one block to a causal per-face backbone. The block first applies attention across the faces present in the current frame, then causal attention along each face's own history. Comparing faces at one instant involves no time axis, so it needs no lookahead, and the block's 1.57M parameters do not depend on how many faces are in the scene. On MSDWild, where most non-speaking faces appear next to someone who is speaking, this removes 32% of the false alarms the per-face backbone makes on such frames, and CAST-ASD is the strongest of the causal systems we compared on both validation splits.</p>
     </div>
   </div>
 </header>
@@ -63,7 +69,7 @@
   <div class="wrap">
     <div class="sec-head">
       <h2>Demo</h2>
-      <p class="lede">30-second scenes from the MSDWild validation splits, processed by the CAST-ASD checkpoints. Each face is drawn with its frame-level speaking probability; the box turns solid when that probability reaches the decision threshold of 0.5. The tracks under the video show the same decisions over time against the ground-truth annotation. The badge on each clip is the causal model's mAP on that clip.</p>
+      <p class="lede">30-second scenes from the MSDWild validation splits, processed by the CAST-ASD checkpoints and, for comparison, by the released LoCoNet and TalkNet models. Each face is drawn with its frame-level speaking probability; the box turns solid when that probability reaches the decision threshold of 0.5. The tracks under the video show the same decisions over time against the ground-truth annotation.</p>
     </div>
 
     <div class="clips" id="clips" role="group" aria-label="Choose a clip"></div>
@@ -84,6 +90,11 @@
           <button class="ctl" id="step-fwd" type="button" aria-label="Next frame" title="Next frame (→)"><svg><use href="#i-fwd"/></svg></button>
           <span class="time" id="time">00:00.0 / 00:30.0 · frame 0</span>
           <span class="spacer"></span>
+          <span class="ctl-label">Boxes</span>
+          <div class="seg" id="hl" role="group" aria-label="Boxes show">
+            <button type="button" data-v="pred" aria-pressed="true">Model output</button>
+            <button type="button" data-v="gt" aria-pressed="false">Ground truth</button>
+          </div>
           <div class="seg" id="speed" role="group" aria-label="Playback speed">
             <button type="button" data-v="0.5" aria-pressed="false">0.5×</button>
             <button type="button" data-v="1" aria-pressed="true">1×</button>
@@ -91,23 +102,6 @@
           <button class="ctl" id="mute" type="button" aria-label="Mute or unmute"><svg><use href="#i-vol"/></svg></button>
         </div>
         <p class="mode-note" id="box-note" style="margin:8px 2px 0"></p>
-        <div class="card timeline-card">
-          <div class="tl-head">
-            <h4>Diarization tracks</h4>
-            <div class="legend">
-              <span><i style="background:var(--ref);opacity:.6"></i>Ground truth</span>
-              <span><i style="background:linear-gradient(90deg,#ff6b6b,#4dabf7,#51cf66)"></i>Model decision (P ≥ 0.5)</span>
-              <span><i style="background:linear-gradient(90deg,rgba(255,107,107,.25),rgba(77,171,247,.25))"></i>P(speaking)</span>
-              <span id="err-legend" hidden><i style="background:var(--bad)"></i>Decision differs from ground truth</span>
-            </div>
-            <span class="spacer"></span>
-            <label class="check"><input type="checkbox" id="show-err"> Show errors</label>
-          </div>
-          <div class="timeline">
-            <div class="tl-faces" id="tl-faces"></div>
-            <div class="tl-canvas-wrap" id="tl-wrap"><canvas id="tl"></canvas></div>
-          </div>
-        </div>
       </div>
 
       <aside class="panel">
@@ -117,34 +111,44 @@
             <button type="button" data-v="causal" aria-pressed="true">Causal</button>
             <button type="button" data-v="offline" aria-pressed="false">Offline</button>
           </div>
-          <div style="height:10px"></div>
-          <h4>Boxes show</h4>
-          <div class="seg" id="hl" role="group" aria-label="Boxes show">
-            <button type="button" data-v="pred" aria-pressed="true">Model output</button>
-            <button type="button" data-v="gt" aria-pressed="false">Ground truth</button>
-          </div>
           <p class="mode-note" id="mode-note"></p>
         </div>
         <div class="card">
           <h4>Faces <span class="mono" id="faces-unit">P(speaking)</span></h4>
           <div class="faces" id="faces"></div>
         </div>
-        <div class="card">
-          <h4>Speaker-pass attention <span class="mono" id="attn-frame"></span></h4>
-          <div class="attn" id="attn"></div>
-          <p class="mode-note">Cell (row i, column j) is the attention weight that face i places on face j at the current frame, averaged over the eight heads. The outlined row is the face currently detected as speaking.</p>
-        </div>
       </aside>
+    </div>
+
+    <div class="card timeline-card">
+      <div class="tl-head">
+        <h4>Diarization tracks</h4>
+        <div class="legend">
+          <span><i style="background:var(--ref);opacity:.6"></i>Ground truth</span>
+          <span><i style="background:linear-gradient(90deg,#ff6b6b,#4dabf7,#51cf66)"></i>Model decision (P ≥ 0.5)</span>
+          <span class="single-only"><i style="background:linear-gradient(90deg,rgba(255,107,107,.25),rgba(77,171,247,.25))"></i>P(speaking)</span>
+      <span class="cmp-only" hidden><i style="background:repeating-linear-gradient(135deg,var(--bad) 0 3px,rgba(0,0,0,.55) 3px 4.5px)"></i>False alarm</span>
+          <span id="err-legend" hidden><i style="background:var(--bad)"></i>Decision differs from ground truth</span>
+        </div>
+        <span class="spacer"></span>
+        <label class="check" id="cmp-wrap" hidden><input type="checkbox" id="cmp"> Compare causal systems</label>
+    <label class="check single-only"><input type="checkbox" id="show-err"> Show errors</label>
+      </div>
+      <p class="mode-note" id="cmp-note" hidden style="margin:0 0 10px">LoCoNet and TalkNet use their authors' released AVA weights and are not retrained on MSDWild; for the retrained comparison see <a href="#results">Table 1</a>.</p>
+  <div class="timeline">
+        <div class="tl-faces" id="tl-faces"></div>
+        <div class="tl-canvas-wrap" id="tl-wrap"><canvas id="tl"></canvas></div>
+      </div>
     </div>
 
     <div class="card pad clip-metrics">
       <div class="cm-wrap">
         <table class="cm-table" id="cm">
-          <thead><tr><th>This clip</th><th>mAP ↑</th><th>mAP<sub>c</sub> ↑</th><th>DER* ↓</th><th>F1 @ 0.5 ↑</th><th>Precision</th><th>Recall</th></tr></thead>
+          <thead><tr><th>This clip</th><th>mAP ↑</th><th>mAP<sub>c</sub> ↑</th><th>FA ↓</th><th>FA<sub>c</sub> ↓</th><th>DER* ↓</th><th>F1 ↑</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
-      <p class="cm-note" id="cm-note">Scored on this clip alone with the evaluation code in the repository. Single clips vary a lot; the split-level numbers are in <a href="#results">Results</a>.</p>
+      <p class="cm-note" id="cm-note">Scored on this clip alone with the evaluation code in the repository. FA and FA<sub>c</sub> are false-alarm rates (%) at the 0.5 threshold, over all negative face-frames and over those where another visible face is speaking. Single clips vary; split-level numbers are in <a href="#results">Results</a>.</p>
     </div>
   </div>
 </section>
