@@ -14,6 +14,7 @@ Pratham Gupta<sup>1,2,†,\*</sup> &nbsp;·&nbsp; Haotian Qi<sup>2,\*</sup> &nbs
 
 [![arXiv](https://img.shields.io/badge/arXiv-2610.14676-b31b1b.svg)](https://arxiv.org/abs/2610.14676)
 [![Project page](https://img.shields.io/badge/Project-page-4b49d6.svg)](https://prathamg007.github.io/CAST-ASD/)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-ffd21e.svg)](https://huggingface.co/prathamg007/CAST-ASD)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-Lightning-792EE5.svg)](https://lightning.ai/)
@@ -94,7 +95,9 @@ The code has been run on Linux and Windows. Run `pytest` to check the install.
 
 ## Pretrained models
 
-All four checkpoints are CAST ×1 (one block).
+All four checkpoints are CAST ×1 (one block). They are in `weights/` and also on
+[Hugging Face](https://huggingface.co/prathamg007/CAST-ASD)
+(`hf download prathamg007/CAST-ASD --include "weights/*" --local-dir .`).
 
 | File | Config | Seed | Validation mAP | Paper (mean of 3 seeds) |
 |---|---|:---:|---|---|
