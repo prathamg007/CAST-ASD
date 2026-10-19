@@ -4,12 +4,16 @@
 
 ### Causal Attention over Speakers and Time for Online Active Speaker Detection
 
-Pratham Gupta<sup>1,\*</sup> &nbsp;·&nbsp; Haotian Qi<sup>2,\*</sup> &nbsp;·&nbsp; Tushar Sandhan<sup>1</sup> &nbsp;·&nbsp; Gabriel Skantze<sup>2</sup>
+Pratham Gupta<sup>1,2,†,\*</sup> &nbsp;·&nbsp; Haotian Qi<sup>2,\*</sup> &nbsp;·&nbsp; Tushar Sandhan<sup>1</sup> &nbsp;·&nbsp; Gabriel Skantze<sup>2</sup>
 
 <sup>1</sup>Indian Institute of Technology Kanpur &nbsp;&nbsp; <sup>2</sup>KTH Royal Institute of Technology
 
-<sub><sup>\*</sup>Equal contribution</sub>
+<sub><sup>†</sup>Corresponding author &nbsp;&nbsp; <sup>\*</sup>Equal contribution</sub>
 
+**[Project page and interactive demo](https://prathamg007.github.io/CAST-ASD/)** &nbsp;·&nbsp; **[Paper (arXiv)](https://arxiv.org/abs/2610.14676)**
+
+[![arXiv](https://img.shields.io/badge/arXiv-2610.14676-b31b1b.svg)](https://arxiv.org/abs/2610.14676)
+[![Project page](https://img.shields.io/badge/Project-page-4b49d6.svg)](https://prathamg007.github.io/CAST-ASD/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-Lightning-792EE5.svg)](https://lightning.ai/)
@@ -62,7 +66,8 @@ official ActivityNet evaluator:
 | TalkNet (MFCC) | 89.11 ± .18 |
 
 Offline counterparts, the front-end controls, the scene-width breakdown and the
-cost of causal inference are reported in the paper.
+cost of causal inference are reported in the [paper](https://arxiv.org/abs/2610.14676) and on the
+[project page](https://prathamg007.github.io/CAST-ASD/).
 
 ## Installation
 
@@ -236,9 +241,14 @@ Please cite our paper if you use this code or the model weights.
 
 ```bibtex
 @misc{gupta2026castasd,
-  title  = {{CAST-ASD}: Causal Attention over Speakers and Time for Online Active Speaker Detection},
-  author = {Gupta, Pratham and Qi, Haotian and Sandhan, Tushar and Skantze, Gabriel},
-  year   = {2026}
+  title         = {{CAST-ASD}: Causal Attention over Speakers and Time for Online Active Speaker Detection},
+  author        = {Gupta, Pratham and Qi, Haotian and Sandhan, Tushar and Skantze, Gabriel},
+  year          = {2026},
+  eprint        = {2610.14676},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  doi           = {10.48550/arXiv.2610.14676},
+  url           = {https://arxiv.org/abs/2610.14676}
 }
 ```
 
